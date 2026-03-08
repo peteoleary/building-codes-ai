@@ -77,9 +77,84 @@ deactivate
 # WARNING: This deletes bin/, lib/, and include/ directories
 rm -rf bin lib include pyvenv.cfg
 
-# 4. Install Python 3.13 if needed (macOS with Homebrew)
-brew install python@3.13
+# 4. Install Python 3.13 if needed
+```
 
+**Installing Python 3.13 by operating system:**
+
+**macOS (Homebrew):**
+```bash
+brew install python@3.13
+```
+
+**Ubuntu/Debian:**
+```bash
+# Add deadsnakes PPA for Python 3.13
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.13 python3.13-venv python3.13-dev
+
+# Verify installation
+python3.13 --version
+```
+
+**Fedora/RHEL/CentOS:**
+```bash
+# Fedora 39+ should have Python 3.13 in repos
+sudo dnf install python3.13 python3.13-devel
+
+# For older versions, build from source or use pyenv (see below)
+```
+
+**Arch Linux:**
+```bash
+# Python 3.13 should be in official repos
+sudo pacman -S python
+
+# Or explicitly install 3.13 if available
+sudo pacman -S python313
+```
+
+**Using pyenv (all Linux distributions):**
+```bash
+# Install pyenv if not already installed
+curl https://pyenv.run | bash
+
+# Add to ~/.bashrc or ~/.zshrc:
+# export PATH="$HOME/.pyenv/bin:$PATH"
+# eval "$(pyenv init -)"
+
+# Restart shell, then install Python 3.13
+pyenv install 3.13.7
+pyenv local 3.13.7
+
+# Verify
+python --version
+```
+
+**Building from source (any Linux):**
+```bash
+# Install build dependencies (Ubuntu/Debian example)
+sudo apt install build-essential zlib1g-dev libncurses5-dev \
+  libgdbm-dev libnss3-dev libssl-dev libreadline-dev \
+  libffi-dev libsqlite3-dev wget libbz2-dev
+
+# Download and build Python 3.13
+cd /tmp
+wget https://www.python.org/ftp/python/3.13.7/Python-3.13.7.tgz
+tar -xf Python-3.13.7.tgz
+cd Python-3.13.7
+./configure --enable-optimizations
+make -j $(nproc)
+sudo make altinstall  # Use altinstall to not override system python
+
+# Verify
+python3.13 --version
+```
+
+**Continue with virtual environment setup:**
+
+```bash
 # 5. Create new virtual environment with Python 3.13
 python3.13 -m venv .
 
@@ -96,7 +171,19 @@ pip install -r requirements.txt
 python check_dependencies.py
 ```
 
-**Note:** You only need to upgrade if you're running Python < 3.13. PyTorch 2.9+ with MPS support requires Python 3.13+.
+**Important Notes:**
+- **Why Python 3.13?** PyTorch 2.9+ with MPS (Apple Silicon) and latest CUDA support requires Python 3.13+
+- **Older Python versions:** If stuck on Python 3.11/3.12, you can try:
+  - Installing PyTorch 2.5-2.8 (may work but without latest features)
+  - Using CPU-only mode (no MPS/CUDA acceleration)
+  - Using Docker with Python 3.13 pre-installed
+- **System Python:** Avoid using system Python for this project; always use a virtual environment to prevent conflicts
+- **Multiple Python versions:** Tools like `pyenv` let you have multiple Python versions side-by-side without conflicts
+
+**Troubleshooting:**
+- If `python3.13` command not found after installation, try `python3` or check your PATH
+- On some systems, you may need to use `python3.13-venv` instead of `-m venv`
+- If build fails on Linux, ensure all development headers are installed (`-dev` or `-devel` packages)
 
 ### 1. Prepare Your Environment
 ```bash
