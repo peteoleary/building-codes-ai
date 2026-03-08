@@ -209,7 +209,6 @@ python check_dependencies.py
 - If `python3.13` command not found after installation, try `python3` or check your PATH
 - On some systems, you may need to use `python3.13-venv` instead of `-m venv`
 - If build fails on Linux, ensure all development headers are installed (`-dev` or `-devel` packages)
-- **Debian + deadsnakes PPA error:** If you see "repository does not have a Release file" on Debian, this is because **deadsnakes PPA only works on Ubuntu, not Debian**. Use pyenv or build from source instead (see instructions above)
 
 ### 1. Prepare Your Environment
 ```bash

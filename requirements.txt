@@ -11,6 +11,7 @@ chainlit>=2.0.0             # Web interface for chat with models
 # Optional but Recommended
 numpy>=1.24.0               # Numerical operations (usually installed with torch)
 matplotlib>=3.7.0           # For plotting training losses (optional)
+tqdm>=4.65.0                # Progress bars for training loops
 
 # Installation Notes:
 # 
