@@ -62,6 +62,42 @@ python check_dependencies.py
 
 **Note:** The virtual environment creates `bin/`, `lib/`, and `include/` directories in your project folder. The `bin/` directory contains `python`, `pip`, and other executables.
 
+#### Upgrading Existing Virtual Environment to Python 3.13
+
+If you have an older virtual environment (e.g., Python 3.11 or 3.12), you need to recreate it with Python 3.13:
+
+```bash
+# 1. Check your current Python version
+python --version
+
+# 2. If not Python 3.13+, deactivate the current environment
+deactivate
+
+# 3. Remove the old virtual environment
+# WARNING: This deletes bin/, lib/, and include/ directories
+rm -rf bin lib include pyvenv.cfg
+
+# 4. Install Python 3.13 if needed (macOS with Homebrew)
+brew install python@3.13
+
+# 5. Create new virtual environment with Python 3.13
+python3.13 -m venv .
+
+# 6. Activate the new environment
+source bin/activate
+
+# 7. Verify Python version
+python --version  # Should show Python 3.13.x
+
+# 8. Reinstall dependencies
+pip install -r requirements.txt
+
+# 9. Verify installation
+python check_dependencies.py
+```
+
+**Note:** You only need to upgrade if you're running Python < 3.13. PyTorch 2.9+ with MPS support requires Python 3.13+.
+
 ### 1. Prepare Your Environment
 ```bash
 # Activate virtual environment (if not already active)
