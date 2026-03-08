@@ -10,7 +10,17 @@ from gpt_dataset import GPTDatasetV1
 from gpt_utils import generate, text_to_token_ids, token_ids_to_text
 import time
 
-# Model configuration matching the pre-trained GPT-2 355M Medium model
+# Model configurations for GPT-2 Small and Medium
+GPT_CONFIG_124M = {
+    "vocab_size": 50257,    # Vocabulary size
+    "context_length": 1024, # Context length
+    "emb_dim": 768,         # Embedding dimension (Small: 768)
+    "n_heads": 12,          # Number of attention heads (Small: 12)
+    "n_layers": 12,         # Number of layers (Small: 12)
+    "drop_rate": 0.1,       # Dropout rate
+    "qkv_bias": True        # Query-Key-Value bias (GPT-2 uses True)
+}
+
 GPT_CONFIG_355M = {
     "vocab_size": 50257,    # Vocabulary size
     "context_length": 1024, # Context length
@@ -21,8 +31,27 @@ GPT_CONFIG_355M = {
     "qkv_bias": True        # Query-Key-Value bias (GPT-2 uses True)
 }
 
+# Model configurations to train
+MODEL_CONFIGS = {
+    "small": {
+        "config": GPT_CONFIG_124M,
+        "pretrained_path": "gpt2-small-124M.pth",
+        "output_path": "gpt2-san-francisco-finetuned.pth",
+        "checkpoint_path": "gpt2-small-san-francisco-checkpoint.pth",
+        "batch_size": 4,
+        "name": "GPT-2 Small (124M)"
+    },
+    "medium": {
+        "config": GPT_CONFIG_355M,
+        "pretrained_path": "gpt2-medium-355M.pth",
+        "output_path": "gpt2-medium-san-francisco-finetuned.pth",
+        "checkpoint_path": "gpt2-medium-san-francisco-checkpoint.pth",
+        "batch_size": 2,
+        "name": "GPT-2 Medium (355M)"
+    }
+}
+
 # Training hyperparameters
-BATCH_SIZE = 2    # Reduced for larger model
 MAX_LENGTH = 256  # Sequence length for training
 STRIDE = 128      # Stride for sliding window
 NUM_EPOCHS = 5
@@ -190,80 +219,28 @@ def setup_layer_freezing(model, strategy="freeze_early"):
         print(f"✓ Training last {num_layers - freeze_count} blocks + output layers")
 
 
-def main():
-    # Set device
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        major, minor = map(int, torch.__version__.split(".")[:2])
-        if (major, minor) >= (2, 9):
-            device = torch.device("mps")
-        else:
-            device = torch.device("cpu")
-    else:
-        device = torch.device("cpu")
-
-    print(f"Using device: {device}")
+def train_single_model(model_key, model_info, train_loader, val_loader, device, tokenizer):
+    """Train a single model configuration."""
+    print("\n" + "="*80)
+    print(f"TRAINING {model_info['name']}")
+    print("="*80)
     
-    # Initialize tokenizer
-    tokenizer = tiktoken.get_encoding("gpt2")
-    
-    # Load training data
-    print("\nLoading training data from san_francisco-ca-1.txt...")
-    with open("san_francisco-ca-1.txt", "r", encoding="utf-8", errors="ignore") as f:
-        text = f.read()
-    
-    print(f"Total characters: {len(text):,}")
-    print(f"Total words (approx): {len(text.split()):,}")
-    
-    # Tokenize and check length
-    token_ids = tokenizer.encode(text, allowed_special={"<|endoftext|>"})
-    print(f"Total tokens: {len(token_ids):,}")
-    
-    # Split into train and validation (90/10 split)
-    split_idx = int(len(text) * 0.9)
-    train_text = text[:split_idx]
-    val_text = text[split_idx:]
-    
-    print(f"\nTraining set characters: {len(train_text):,}")
-    print(f"Validation set characters: {len(val_text):,}")
-    
-    # Create datasets and dataloaders
-    print("\nCreating datasets and dataloaders...")
-    train_dataset = GPTDatasetV1(train_text, tokenizer, MAX_LENGTH, STRIDE)
-    val_dataset = GPTDatasetV1(val_text, tokenizer, MAX_LENGTH, STRIDE)
-    
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        drop_last=True,
-        num_workers=0
-    )
-    
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        drop_last=False,
-        num_workers=0
-    )
-    
-    print(f"Training batches: {len(train_loader)}")
-    print(f"Validation batches: {len(val_loader)}")
+    config = model_info["config"]
+    pretrained_path = model_info["pretrained_path"]
+    output_path = model_info["output_path"]
+    checkpoint_path = model_info["checkpoint_path"]
     
     # Load pre-trained model
-    print("\nLoading pre-trained GPT-2 Medium model from gpt2-medium-355M.pth...")
-    model = GPTModel(GPT_CONFIG_355M)
+    print(f"\nLoading pre-trained model from {pretrained_path}...")
+    model = GPTModel(config)
     
-    model_file = "gpt2-medium-355M.pth"
-    if os.path.exists(model_file):
-        model.load_state_dict(torch.load(model_file, weights_only=True))
+    if os.path.exists(pretrained_path):
+        model.load_state_dict(torch.load(pretrained_path, weights_only=True))
         print("✓ Pre-trained model loaded successfully")
     else:
-        print(f"Warning: {model_file} not found. Training from scratch.")
+        print(f"Warning: {pretrained_path} not found. Training from scratch.")
     
-    # Setup layer freezing (choose strategy: "freeze_early", "freeze_most", "head_only", or "no_freeze")
+    # Setup layer freezing
     print("\nSetting up layer freezing...")
     setup_layer_freezing(model, strategy="freeze_early")
     
@@ -313,27 +290,25 @@ def main():
     print(f"{'='*80}")
     
     # Save the fine-tuned model
-    output_file = "gpt2-medium-san-francisco-finetuned.pth"
-    print(f"\nSaving fine-tuned model to {output_file}...")
-    torch.save(model.state_dict(), output_file)
+    print(f"\nSaving fine-tuned model to {output_path}...")
+    torch.save(model.state_dict(), output_path)
     print("✓ Model saved successfully")
     
-    # Save model with optimizer state
-    checkpoint_file = "gpt2-medium-san-francisco-checkpoint.pth"
-    print(f"Saving checkpoint to {checkpoint_file}...")
+    # Save checkpoint
+    print(f"Saving checkpoint to {checkpoint_path}...")
     torch.save({
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
         'train_losses': train_losses,
         'val_losses': val_losses,
         'tokens_seen': tokens_seen,
-        'config': GPT_CONFIG_355M
-    }, checkpoint_file)
+        'config': config
+    }, checkpoint_path)
     print("✓ Checkpoint saved successfully")
     
     # Final generation test
     print("\n" + "="*80)
-    print("FINAL MODEL TEST - Generating longer sample:")
+    print("FINAL MODEL TEST - Generating sample:")
     print("="*80)
     model.eval()
     test_prompts = [
@@ -350,17 +325,117 @@ def main():
             token_ids = generate(
                 model=model,
                 idx=encoded,
-                max_new_tokens=150,
-                context_size=GPT_CONFIG_355M["context_length"],
+                max_new_tokens=100,
+                context_size=config["context_length"],
                 temperature=0.7,
                 top_k=50
             )
         decoded_text = token_ids_to_text(token_ids, tokenizer)
         print(decoded_text)
-        print()
     
+    print(f"\n✓ {model_info['name']} training complete!")
+    return training_time
+
+
+def main():
+    # Set device
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        major, minor = map(int, torch.__version__.split(".")[:2])
+        if (major, minor) >= (2, 9):
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
+    else:
+        device = torch.device("cpu")
+
     print("="*80)
-    print("Training complete! Fine-tuned model ready for use.")
+    print("GPT-2 FINE-TUNING ON SAN FRANCISCO BUILDING CODES")
+    print("="*80)
+    print(f"Using device: {device}")
+    print(f"Models to train: {', '.join([MODEL_CONFIGS[k]['name'] for k in ['small', 'medium']])}")
+    
+    # Initialize tokenizer
+    tokenizer = tiktoken.get_encoding("gpt2")
+    
+    # Load training data
+    print("\nLoading training data from san_francisco-ca-1.txt...")
+    with open("san_francisco-ca-1.txt", "r", encoding="utf-8", errors="ignore") as f:
+        text = f.read()
+    
+    print(f"Total characters: {len(text):,}")
+    print(f"Total words (approx): {len(text.split()):,}")
+    
+    # Tokenize and check length
+    token_ids = tokenizer.encode(text, allowed_special={"<|endoftext|>"})
+    print(f"Total tokens: {len(token_ids):,}")
+    
+    # Split into train and validation (90/10 split)
+    split_idx = int(len(text) * 0.9)
+    train_text = text[:split_idx]
+    val_text = text[split_idx:]
+    
+    print(f"\nTraining set characters: {len(train_text):,}")
+    print(f"Validation set characters: {len(val_text):,}")
+    
+    # Create base datasets
+    print("\nCreating datasets...")
+    train_dataset = GPTDatasetV1(train_text, tokenizer, MAX_LENGTH, STRIDE)
+    val_dataset = GPTDatasetV1(val_text, tokenizer, MAX_LENGTH, STRIDE)
+    
+    # Train both models
+    total_start_time = time.time()
+    training_times = {}
+    
+    for model_key in ["small", "medium"]:
+        model_info = MODEL_CONFIGS[model_key]
+        batch_size = model_info["batch_size"]
+        
+        # Create dataloaders with appropriate batch size for this model
+        print(f"\nCreating dataloaders for {model_info['name']} (batch_size={batch_size})...")
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            drop_last=True,
+            num_workers=0
+        )
+        
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            drop_last=False,
+            num_workers=0
+        )
+        
+        print(f"Training batches: {len(train_loader)}")
+        print(f"Validation batches: {len(val_loader)}")
+        
+        # Train this model
+        model_time = train_single_model(
+            model_key, 
+            model_info, 
+            train_loader, 
+            val_loader, 
+            device, 
+            tokenizer
+        )
+        training_times[model_key] = model_time
+    
+    # Final summary
+    total_time = time.time() - total_start_time
+    print("\n" + "="*80)
+    print("ALL TRAINING COMPLETE!")
+    print("="*80)
+    print(f"\nTotal training time: {total_time/60:.2f} minutes")
+    print(f"\nIndividual model times:")
+    for model_key, model_time in training_times.items():
+        print(f"  {MODEL_CONFIGS[model_key]['name']}: {model_time/60:.2f} minutes")
+    print("\nFine-tuned models ready for use:")
+    for model_key in ["small", "medium"]:
+        print(f"  ✓ {MODEL_CONFIGS[model_key]['output_path']}")
     print("="*80)
 
 

@@ -122,3 +122,58 @@ Try asking the same question to different models to see how model size and fine-
 - For quick testing and general queries: Use Small models
 - For detailed SF building code queries: Use Medium Fine-tuned model
 - For comparison: Test the same prompt across all available models
+
+## Creating Fine-tuned Models
+
+The two fine-tuned models can be created by running the training script:
+
+```bash
+bin/python train_san_francisco.py
+```
+
+This script will:
+1. Train **GPT-2 Small (124M)** on San Francisco building codes (~25 minutes)
+   - Creates `gpt2-san-francisco-finetuned.pth`
+   - Creates `gpt2-small-san-francisco-checkpoint.pth` (for resuming training)
+
+2. Train **GPT-2 Medium (355M)** on San Francisco building codes (~50 minutes)
+   - Creates `gpt2-medium-san-francisco-finetuned.pth`
+   - Creates `gpt2-medium-san-francisco-checkpoint.pth` (for resuming training)
+
+**Total training time:** ~70-85 minutes for both models
+
+After training completes, restart the Chainlit app to load the new fine-tuned models.
+
+For detailed training instructions, see [TRAINING_README.md](TRAINING_README.md).
+
+## Troubleshooting
+
+### Model Not Loading
+
+If a model fails to load:
+1. Check that the `.pth` file exists in the directory
+2. Verify the file size matches expected size (not corrupted)
+3. Check console output for specific error messages
+4. Ensure you have enough RAM/VRAM for the model size
+
+### Model Not Appearing in Dropdown
+
+The app only shows models that successfully loaded. If a model is missing:
+- Check the console output when starting the app
+- Look for error messages about that specific model file
+- Verify the model file name matches exactly what's in `app.py`
+
+### Slow Response Times
+
+If responses are slow:
+- Use Small models instead of Medium for faster inference
+- Ensure your system has adequate RAM (16GB+ recommended for Medium models)
+- Close other memory-intensive applications
+- On Apple Silicon, verify MPS is being used (check console output)
+
+### Out of Memory Errors
+
+If you get OOM errors:
+- Use only Small models (require less memory)
+- Reduce max_new_tokens in generation settings
+- Free up system memory by closing other applications

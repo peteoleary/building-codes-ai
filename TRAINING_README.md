@@ -1,13 +1,15 @@
 # GPT-2 Fine-tuning on San Francisco Building Codes
 
-This script fine-tunes a GPT-2 model on the San Francisco Building Code to create a specialized model that better understands construction regulations and building terminology.
+This script fine-tunes both GPT-2 Small and Medium models on the San Francisco Building Code to create specialized models that better understand construction regulations and building terminology.
 
 ## Overview
 
-**train_san_francisco.py** takes a pre-trained GPT-2 model and fine-tunes it on the San Francisco Building Code text, creating a domain-specific model that can:
+**train_san_francisco.py** trains both GPT-2 Small (124M) and Medium (355M) models sequentially on the San Francisco Building Code text, creating domain-specific models that can:
 - Better understand building code language and terminology
 - Generate more accurate responses to construction-related queries
 - Provide more relevant information about San Francisco building regulations
+
+**Output:** 4 model files (2 fine-tuned + 2 checkpoints) for use in the Chainlit app
 
 ## Requirements
 
@@ -20,15 +22,17 @@ This script fine-tunes a GPT-2 model on the San Francisco Building Code to creat
 ### Data Files
 - `san_francisco-ca-1.txt` - San Francisco Building Code text file (must be in the same directory)
 
-### Pre-trained Model
-Choose one:
-- `gpt2-small-124M.pth` (670 MB) - Faster training, smaller model
-- `gpt2-medium-355M.pth` (1.6 GB) - Better quality, longer training
+### Pre-trained Models
+Both required (script trains both models):
+- `gpt2-small-124M.pth` (670 MB) - Small model, faster training
+- `gpt2-medium-355M.pth` (1.6 GB) - Medium model, better quality
 
 **Download the Medium model:**
 ```bash
 bin/python download_gpt2_medium.py
 ```
+
+**Note:** Small model should already exist; download Medium if needed.
 
 ## Quick Start
 
@@ -64,8 +68,9 @@ python check_dependencies.py
 source bin/activate
 
 # Verify you have the required files
-ls san_francisco-ca-1.txt  # Training data
-ls gpt2-medium-355M.pth    # Pre-trained model
+ls san_francisco-ca-1.txt   # Training data
+ls gpt2-small-124M.pth      # Small pre-trained model
+ls gpt2-medium-355M.pth     # Medium pre-trained model
 ```
 
 ### 2. Run Training
@@ -76,17 +81,75 @@ bin/python train_san_francisco.py
 The script will:
 1. Load and tokenize the training data
 2. Split into training (90%) and validation (10%) sets
-3. Load the pre-trained GPT-2 model
-4. Apply layer freezing for efficient fine-tuning
-5. Train for 5 epochs with periodic evaluation
-6. Save the fine-tuned model
+3. **Train GPT-2 Small (124M):**
+   - Load pre-trained Small model
+   - Apply layer freezing (freeze 75% of layers)
+   - Train for 5 epochs with batch_size=4
+   - Save fine-tuned model and checkpoint
+4. **Train GPT-2 Medium (355M):**
+   - Load pre-trained Medium model
+   - Apply layer freezing (freeze 75% of layers)
+   - Train for 5 epochs with batch_size=2
+   - Save fine-tuned model and checkpoint
+5. Display training summary with times for both models
+
+**Total Runtime:** ~70-85 minutes (Small: ~25 min, Medium: ~50 min)
 
 ### 3. Monitor Training
-Watch for output like:
+
+The script trains both models sequentially. You'll see:
+
+**1. GPT-2 Small (124M) training:**
 ```
+================================================================================
+TRAINING GPT-2 Small (124M)
+================================================================================
+Loading pre-trained model from gpt2-small-124M.pth...
+✓ Pre-trained model loaded successfully
+
+Setting up layer freezing...
+✓ Frozen first 9/12 transformer blocks
+...
 Ep 1/5 (Step 000050): Train loss 3.245, Val loss 3.198
 Ep 1/5 (Step 000100): Train loss 2.891, Val loss 2.845
-Ep 2/5 (Step 000150): Train loss 2.654, Val loss 2.612
+...
+Training completed in 25.43 minutes
+✓ GPT-2 Small (124M) training complete!
+```
+
+**2. GPT-2 Medium (355M) training:**
+```
+================================================================================
+TRAINING GPT-2 Medium (355M)
+================================================================================
+Loading pre-trained model from gpt2-medium-355M.pth...
+✓ Pre-trained model loaded successfully
+
+Setting up layer freezing...
+✓ Frozen first 18/24 transformer blocks
+...
+Ep 1/5 (Step 000050): Train loss 3.112, Val loss 3.089
+...
+Training completed in 52.18 minutes
+✓ GPT-2 Medium (355M) training complete!
+```
+
+**3. Final summary:**
+```
+================================================================================
+ALL TRAINING COMPLETE!
+================================================================================
+
+Total training time: 77.61 minutes
+
+Individual model times:
+  GPT-2 Small (124M): 25.43 minutes
+  GPT-2 Medium (355M): 52.18 minutes
+
+Fine-tuned models ready for use:
+  ✓ gpt2-san-francisco-finetuned.pth
+  ✓ gpt2-medium-san-francisco-finetuned.pth
+================================================================================
 ```
 
 **Good training:** Both losses decrease together  
@@ -94,25 +157,43 @@ Ep 2/5 (Step 000150): Train loss 2.654, Val loss 2.612
 
 ## Configuration
 
-### Model Configuration (Lines 14-22)
+### Model Configurations (Lines 14-51)
 
-Currently set to **GPT-2 Medium (355M parameters)**:
+The script trains both models using these configurations:
+
+**GPT-2 Small (124M parameters):**
 ```python
-GPT_CONFIG_355M = {
+GPT_CONFIG_124M = {
     "vocab_size": 50257,
     "context_length": 1024,
-    "emb_dim": 1024,        # Medium: 1024, Small: 768
-    "n_heads": 16,          # Medium: 16, Small: 12
-    "n_layers": 24,         # Medium: 24, Small: 12
+    "emb_dim": 768,         # Small: 768
+    "n_heads": 12,          # Small: 12
+    "n_layers": 12,         # Small: 12
     "drop_rate": 0.1,
     "qkv_bias": True
 }
 ```
 
-### Training Hyperparameters (Lines 25-33)
+**GPT-2 Medium (355M parameters):**
+```python
+GPT_CONFIG_355M = {
+    "vocab_size": 50257,
+    "context_length": 1024,
+    "emb_dim": 1024,        # Medium: 1024
+    "n_heads": 16,          # Medium: 16
+    "n_layers": 24,         # Medium: 24
+    "drop_rate": 0.1,
+    "qkv_bias": True
+}
+```
+
+**Model-specific settings:**
+- Small: batch_size=4, output: `gpt2-san-francisco-finetuned.pth`
+- Medium: batch_size=2, output: `gpt2-medium-san-francisco-finetuned.pth`
+
+### Training Hyperparameters (Lines 54-61)
 
 ```python
-BATCH_SIZE = 2           # Reduced for larger model (use 4 for Small)
 MAX_LENGTH = 256         # Sequence length for training
 STRIDE = 128             # Sliding window stride
 NUM_EPOCHS = 5           # Number of training epochs
@@ -122,7 +203,7 @@ EVAL_FREQ = 50           # Evaluate every N steps
 EVAL_ITER = 5            # Batches to use for evaluation
 ```
 
-### Layer Freezing Strategy (Line 268)
+### Layer Freezing Strategy
 
 ```python
 setup_layer_freezing(model, strategy="freeze_early")
@@ -136,50 +217,65 @@ setup_layer_freezing(model, strategy="freeze_early")
 
 ## Output Files
 
-After training completes, you'll have:
+After training completes, you'll have **4 files**:
 
-### Fine-tuned Model
+### Small Model Files
+```
+gpt2-san-francisco-finetuned.pth  (~670 MB)
+```
+- Contains Small model weights only
+- Use for inference (faster, less memory)
+
+```
+gpt2-small-san-francisco-checkpoint.pth  (~1.4 GB)
+```
+- Contains Small model + optimizer + training metrics
+- Use to resume training
+
+### Medium Model Files
 ```
 gpt2-medium-san-francisco-finetuned.pth  (~1.6 GB)
 ```
-- Contains only the model weights
-- Use this for inference and sharing
+- Contains Medium model weights only
+- Use for inference (better quality)
 
-### Training Checkpoint
 ```
 gpt2-medium-san-francisco-checkpoint.pth  (~3.2 GB)
 ```
-- Contains model weights + optimizer state + training metrics
-- Use this to resume training later
+- Contains Medium model + optimizer + training metrics
+- Use to resume training
+
+**Total disk space needed:** ~7 GB for all output files
 
 ## Customization
 
-### Training on Small Model (124M)
+### Training Only One Model
 
-1. Change configuration (line 14):
+To train only Small or only Medium, edit the main loop (line ~390):
+
+**Small only:**
 ```python
-GPT_CONFIG_124M = {
-    "vocab_size": 50257,
-    "context_length": 1024,
-    "emb_dim": 768,
-    "n_heads": 12,
-    "n_layers": 12,
-    "drop_rate": 0.1,
-    "qkv_bias": True
+for model_key in ["small"]:
+```
+
+**Medium only:**
+```python
+for model_key in ["medium"]:
+```
+
+### Adjusting Batch Sizes
+
+Edit MODEL_CONFIGS (lines 34-51) to change batch sizes:
+```python
+"small": {
+    "batch_size": 8,  # Increase if you have more memory
+    ...
+},
+"medium": {
+    "batch_size": 4,  # Default is 2
+    ...
 }
 ```
-
-2. Update batch size (line 25):
-```python
-BATCH_SIZE = 4  # Can use larger batch with smaller model
-```
-
-3. Change model file (line 261):
-```python
-model_file = "gpt2-small-124M.pth"
-```
-
-4. Update references to config throughout
 
 ### Adjusting for Overfitting
 
@@ -230,6 +326,12 @@ On Apple M1/M2/M3 Mac:
 | Medium (355M) | no_freeze | 2 | ~15-20 min | ~75-100 min |
 | Medium (355M) | freeze_early | 2 | ~10-12 min | ~50-60 min |
 
+### Script Total Time (Both Models)
+
+Since the script trains both models sequentially:
+- **Small (freeze_early) + Medium (freeze_early): ~70-85 minutes**
+- **Small (no_freeze) + Medium (no_freeze): ~115-150 minutes**
+
 **Note:** Times vary based on hardware and system load.
 
 ## Memory Requirements
@@ -241,16 +343,11 @@ On Apple M1/M2/M3 Mac:
 | Medium (355M) | All layers | ~16-20 GB |
 | Medium (355M) | freeze_early | ~10-12 GB |
 
-**Recommendation:** Use 16GB+ RAM/unified memory for Medium model.
+**Peak memory:** Medium model (script runs models sequentially, not simultaneously)
 
-## Understanding the Output
-
-### During Training
-```
-Ep 1/5 (Step 000050): Train loss 3.245, Val loss 3.198
-```
-- **Ep**: Current epoch (1-5)
-- **Step**: Training step number
+**Recommendation:** 
+- 16GB+ RAM/unified memory for both models
+- 8GB may work for Small model only (edit script to skip Medium)
 - **Train loss**: Loss on training data (should decrease)
 - **Val loss**: Loss on validation data (should decrease, stay close to train loss)
 
@@ -300,27 +397,45 @@ setup_layer_freezing(model, strategy="freeze_most")
 
 ## Next Steps
 
-After training:
+After training completes:
 
-1. **Test the model** with [test_dual_models.py](test_dual_models.py):
+1. **Test both models** with [test_dual_models.py](test_dual_models.py):
 ```bash
 bin/python test_dual_models.py
 ```
 
-2. **Use in Chainlit app** - The fine-tuned model will be available in [app.py](app.py):
+2. **Use in Chainlit app** - All 4 models will be available in [app.py](app.py):
 ```bash
 bin/chainlit run app.py --port 8000
 ```
 
-3. **Compare models** - Switch between pretrained and fine-tuned in the app to see the difference
+3. **Compare models** - Use the dropdown menu to switch between:
+   - GPT-2 Small (Pretrained)
+   - GPT-2 Small (San Francisco Fine-tuned) ← **New**
+   - GPT-2 Medium (Pretrained)
+   - GPT-2 Medium (San Francisco Fine-tuned) ← **New**
+
+4. **Evaluate improvements** - Ask building code questions and compare responses across all 4 models
 
 ## Advanced Usage
 
 ### Resume Training from Checkpoint
 
+Load either checkpoint to continue training:
+
+**Small model:**
 ```python
-# Load checkpoint instead of pretrained model
+checkpoint = torch.load("gpt2-small-san-francisco-checkpoint.pth")
+model = GPTModel(GPT_CONFIG_124M)
+model.load_state_dict(checkpoint['model_state_dict'])
+optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+previous_losses = checkpoint['train_losses']
+```
+
+**Medium model:**
+```python
 checkpoint = torch.load("gpt2-medium-san-francisco-checkpoint.pth")
+model = GPTModel(GPT_CONFIG_355M)
 model.load_state_dict(checkpoint['model_state_dict'])
 optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 previous_losses = checkpoint['train_losses']
