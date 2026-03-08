@@ -75,6 +75,11 @@ Try asking the same question to different models to see how model size and fine-
   - `gpt2-medium-355M.pth` (1.6 GB)
   - `gpt2-medium-san-francisco-finetuned.pth` (1.6 GB)
 
+**Download pretrained models:**
+```bash
+bin/python download_pretrained_models.py
+```
+
 **Note**: The app will load only the models that are present in the directory.
 
 ## Model Details

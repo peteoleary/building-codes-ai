@@ -27,12 +27,12 @@ Both required (script trains both models):
 - `gpt2-small-124M.pth` (670 MB) - Small model, faster training
 - `gpt2-medium-355M.pth` (1.6 GB) - Medium model, better quality
 
-**Download the Medium model:**
+**Download both models:**
 ```bash
-bin/python download_gpt2_medium.py
+bin/python download_pretrained_models.py
 ```
 
-**Note:** Small model should already exist; download Medium if needed.
+This script downloads both Small (124M) and Medium (355M) models. If you already have one, it will skip it and only download the missing one.
 
 ## Quick Start
 

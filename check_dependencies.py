@@ -146,8 +146,8 @@ def main():
         
         if not has_model:
             print("\n⚠ WARNING: No model files found")
-            print("   Download models with:")
-            print("     bin/python download_gpt2_medium.py")
+            print("   Download pretrained models with:")
+            print("     bin/python download_pretrained_models.py  # Downloads Small + Medium")
         
         if not chainlit_ok:
             print("\n⚠ WARNING: Chainlit not installed")
