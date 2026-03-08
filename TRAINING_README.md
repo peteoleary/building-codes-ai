@@ -32,9 +32,35 @@ bin/python download_gpt2_medium.py
 
 ## Quick Start
 
+### 0. Setup Virtual Environment (First Time Only)
+
+If you don't already have a virtual environment, create one:
+
+```bash
+# Create a new virtual environment in the current directory
+python3 -m venv .
+
+# Or specify Python 3.13+ explicitly
+python3.13 -m venv .
+
+# Activate the virtual environment
+source bin/activate
+
+# Verify Python version (should be 3.13+)
+python --version
+
+# Install required dependencies
+pip install -r requirements.txt
+
+# Verify installation
+python check_dependencies.py
+```
+
+**Note:** The virtual environment creates `bin/`, `lib/`, and `include/` directories in your project folder. The `bin/` directory contains `python`, `pip`, and other executables.
+
 ### 1. Prepare Your Environment
 ```bash
-# Activate virtual environment
+# Activate virtual environment (if not already active)
 source bin/activate
 
 # Verify you have the required files
