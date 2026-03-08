@@ -87,15 +87,30 @@ rm -rf bin lib include pyvenv.cfg
 brew install python@3.13
 ```
 
-**Ubuntu/Debian:**
+**Ubuntu:**
 ```bash
-# Add deadsnakes PPA for Python 3.13
+# Add deadsnakes PPA for Python 3.13 (Ubuntu only)
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
 sudo apt install python3.13 python3.13-venv python3.13-dev
 
 # Verify installation
 python3.13 --version
+```
+
+**Debian:**
+```bash
+# Check if Python 3.13 is available in official repos first
+apt search python3.13
+
+# If available (Debian 13+ "Trixie"):
+sudo apt update
+sudo apt install python3.13 python3.13-venv python3.13-dev
+
+# If NOT available (Debian 11 "Bullseye", 12 "Bookworm"):
+# The deadsnakes PPA does NOT work on Debian, only Ubuntu
+# Use pyenv instead (see "Using pyenv" section below)
+# OR build from source (see "Building from source" section below)
 ```
 
 **Fedora/RHEL/CentOS:**
@@ -152,6 +167,16 @@ sudo make altinstall  # Use altinstall to not override system python
 python3.13 --version
 ```
 
+**Recommended approach for Debian users:**
+
+If you're on Debian (especially Bullseye or Bookworm), the **easiest and safest** method is **pyenv**:
+1. It doesn't require system modifications
+2. It allows multiple Python versions to coexist
+3. It's actively maintained and works reliably on Debian
+4. No need for `sudo` permissions after initial setup
+
+Alternatively, building from source works well but requires more disk space and compilation time (~5-10 minutes).
+
 **Continue with virtual environment setup:**
 
 ```bash
@@ -184,6 +209,7 @@ python check_dependencies.py
 - If `python3.13` command not found after installation, try `python3` or check your PATH
 - On some systems, you may need to use `python3.13-venv` instead of `-m venv`
 - If build fails on Linux, ensure all development headers are installed (`-dev` or `-devel` packages)
+- **Debian + deadsnakes PPA error:** If you see "repository does not have a Release file" on Debian, this is because **deadsnakes PPA only works on Ubuntu, not Debian**. Use pyenv or build from source instead (see instructions above)
 
 ### 1. Prepare Your Environment
 ```bash
