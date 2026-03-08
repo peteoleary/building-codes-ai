@@ -1,0 +1,32 @@
+# Requirements for GPT-2 Training and Chainlit App
+# Compatible with Python 3.13+
+
+# Core Dependencies
+torch>=2.9.0                # PyTorch for deep learning (MPS/CUDA support)
+tiktoken>=0.8.0             # OpenAI's tokenizer for GPT models
+
+# Chainlit App Dependencies (app.py)
+chainlit>=2.0.0             # Web interface for chat with models
+
+# Optional but Recommended
+numpy>=1.24.0               # Numerical operations (usually installed with torch)
+matplotlib>=3.7.0           # For plotting training losses (optional)
+
+# Installation Notes:
+# 
+# 1. For Apple Silicon (M1/M2/M3):
+#    - PyTorch with MPS support requires PyTorch 2.9+
+#    - Install with: pip install torch>=2.9.0
+#
+# 2. For NVIDIA GPUs:
+#    - Install PyTorch with CUDA support from pytorch.org
+#    - Example: pip install torch --index-url https://download.pytorch.org/whl/cu118
+#
+# 3. For CPU only:
+#    - Standard PyTorch installation works
+#
+# Quick Install:
+#    pip install -r requirements.txt
+#
+# Development Install (editable):
+#    pip install -e .
