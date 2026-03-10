@@ -291,9 +291,18 @@ def main():
         device=device
     )
     
-    # Save autoencoder
+    # Save autoencoder with metadata
     output_name = f"sae_{args.model}_{args.checkpoint}_layer{args.layer}.pth"
-    torch.save(autoencoder.state_dict(), output_name)
+    checkpoint = {
+        'model_state_dict': autoencoder.state_dict(),
+        'input_dim': input_dim,
+        'hidden_dim': args.hidden_dim,
+        'layer': args.layer,
+        'model_size': args.model,
+        'checkpoint_type': args.checkpoint,
+        'l1_coeff': args.l1_coeff,
+    }
+    torch.save(checkpoint, output_name)
     print(f"\n✓ Sparse autoencoder saved to {output_name}")
     
     print("\nNext steps:")

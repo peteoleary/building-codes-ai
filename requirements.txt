@@ -8,6 +8,9 @@ tiktoken>=0.8.0             # OpenAI's tokenizer for GPT models
 # Chainlit App Dependencies (app.py)
 chainlit>=2.0.0             # Web interface for chat with models
 
+# Sparse Autoencoder Viewer (sae_viewer.py)
+streamlit>=1.28.0           # Web interface for SAE feature exploration
+
 # Optional but Recommended
 numpy>=1.24.0               # Numerical operations (usually installed with torch)
 matplotlib>=3.7.0           # For plotting training losses (optional)

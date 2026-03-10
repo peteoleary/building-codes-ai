@@ -26,9 +26,23 @@ def load_autoencoder(model_size, checkpoint_type, layer_idx, device):
             f"  bin/python train_sparse_autoencoder.py --model {model_size} --checkpoint {checkpoint_type} --layer {layer_idx}"
         )
     
-    input_dim = 768 if model_size == "small" else 1024
-    autoencoder = SparseAutoencoder(input_dim, hidden_dim=8192)
-    autoencoder.load_state_dict(torch.load(sae_path, map_location=device, weights_only=True))
+    # Load checkpoint and infer dimensions
+    checkpoint = torch.load(sae_path, map_location=device, weights_only=False)
+    
+    # Handle both old (state_dict only) and new (metadata) formats
+    if 'encoder.weight' in checkpoint:
+        # Old format: state_dict directly
+        hidden_dim, input_dim = checkpoint['encoder.weight'].shape
+        state_dict = checkpoint
+    elif 'model_state_dict' in checkpoint:
+        # New format: checkpoint with metadata
+        hidden_dim, input_dim = checkpoint['model_state_dict']['encoder.weight'].shape
+        state_dict = checkpoint['model_state_dict']
+    else:
+        raise ValueError(f"Invalid checkpoint format: {sae_path}")
+    
+    autoencoder = SparseAutoencoder(input_dim, hidden_dim)
+    autoencoder.load_state_dict(state_dict)
     autoencoder.to(device)
     autoencoder.eval()
     
