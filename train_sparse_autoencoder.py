@@ -293,6 +293,7 @@ def main():
     
     # Save autoencoder with metadata
     output_name = f"sae_{args.model}_{args.checkpoint}_layer{args.layer}.pth"
+    input_dim = activations.shape[1]  # Get input dimension from activations
     checkpoint = {
         'model_state_dict': autoencoder.state_dict(),
         'input_dim': input_dim,
